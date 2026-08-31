@@ -53,7 +53,9 @@ public:
 
     // Compute the ORB features and descriptors on an image.
     // ORB are dispersed on the image using an octree.
-    // Mask is ignored in the current implementation.
+    // If _mask is non-empty, it must be an 8-bit single-channel image the same size as
+    // _image: keypoints landing on a zero pixel are discarded before feature-budget
+    // distribution runs.
     int operator()( cv::InputArray _image, cv::InputArray _mask,
                     std::vector<cv::KeyPoint>& _keypoints,
                     cv::OutputArray _descriptors, std::vector<int> &vLappingArea);
@@ -84,13 +86,17 @@ public:
 
 protected:
 
-    void ComputePyramid(cv::Mat image);
-    void ComputeKeyPointsOctTree(std::vector<std::vector<cv::KeyPoint> >& allKeypoints);    
+    void ComputePyramid(cv::Mat image, cv::Mat mask = cv::Mat());
+    void ComputeKeyPointsOctTree(std::vector<std::vector<cv::KeyPoint> >& allKeypoints);
     std::vector<cv::KeyPoint> DistributeOctTree(const std::vector<cv::KeyPoint>& vToDistributeKeys, const int &minX,
                                            const int &maxX, const int &minY, const int &maxY, const int &nFeatures, const int &level);
 
     void ComputeKeyPointsOld(std::vector<std::vector<cv::KeyPoint> >& allKeypoints);
     std::vector<cv::Point> pattern;
+
+    // Per-level mask matching mvImagePyramid, built by ComputePyramid when a mask is
+    // supplied. Empty (unused) when no mask is passed to operator().
+    std::vector<cv::Mat> mvMaskPyramid;
 
     int nfeatures;
     double scaleFactor;

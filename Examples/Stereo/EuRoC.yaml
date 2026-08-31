@@ -40,6 +40,13 @@ Camera2.k2: 0.07451284
 Camera2.p1: -0.00010473
 Camera2.p2: -3.55590700e-05
 
+# Optional: path to an 8-bit single-channel mask image, one per camera, drawn against
+# a raw (unrectified) frame from that physical camera. Non-zero pixels are eligible
+# for feature detection; zero pixels (e.g. covering part of the robot's own body
+# visible in the frame) are excluded. Automatically rectified/resized to match.
+#Camera.mask: "mask_cam1.png"
+#Camera2.mask: "mask_cam2.png"
+
 Camera.width: 752
 Camera.height: 480
 
