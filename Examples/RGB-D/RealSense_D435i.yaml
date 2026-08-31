@@ -20,6 +20,12 @@ Camera1.k2: 0.0
 Camera1.p1: 0.0
 Camera1.p2: 0.0
 
+# Optional: path to an 8-bit single-channel mask image, drawn against a raw
+# (unrectified) color frame from this camera. Non-zero pixels are eligible for feature
+# detection; zero pixels (e.g. covering part of the robot's own body visible in the
+# frame) are excluded.
+#Camera.mask: "mask_cam1.png"
+
 # Camera resolution
 Camera.width: 640
 Camera.height: 480

@@ -860,10 +860,26 @@ namespace ORB_SLAM3
 
                     if(!vKeysCell.empty())
                     {
+                        const bool bHasMask = !mvMaskPyramid.empty();
+                        const cv::Mat& levelMask = bHasMask ? mvMaskPyramid[level] : cv::Mat();
+
                         for(vector<cv::KeyPoint>::iterator vit=vKeysCell.begin(); vit!=vKeysCell.end();vit++)
                         {
                             (*vit).pt.x+=j*wCell;
                             (*vit).pt.y+=i*hCell;
+
+                            // Discard keypoints that fall on a masked-out pixel before they
+                            // ever reach the octree feature-budget distribution, so that
+                            // budget isn't wasted on corners that would just be dropped.
+                            if(bHasMask)
+                            {
+                                int mx = cvRound((*vit).pt.x + minBorderX);
+                                int my = cvRound((*vit).pt.y + minBorderY);
+                                if(mx < 0 || mx >= levelMask.cols || my < 0 || my >= levelMask.rows ||
+                                   levelMask.at<uchar>(my, mx) == 0)
+                                    continue;
+                            }
+
                             vToDistributeKeys.push_back(*vit);
                         }
                     }
@@ -1092,9 +1108,10 @@ namespace ORB_SLAM3
 
         Mat image = _image.getMat();
         assert(image.type() == CV_8UC1 );
+        assert(_mask.empty() || _mask.type() == CV_8UC1);
 
         // Pre-compute the scale pyramid
-        ComputePyramid(image);
+        ComputePyramid(image, _mask.empty() ? cv::Mat() : _mask.getMat());
 
         vector < vector<KeyPoint> > allKeypoints;
         ComputeKeyPointsOctTree(allKeypoints);
@@ -1167,14 +1184,18 @@ namespace ORB_SLAM3
         return monoIndex;
     }
 
-    void ORBextractor::ComputePyramid(cv::Mat image)
+    void ORBextractor::ComputePyramid(cv::Mat image, cv::Mat mask)
     {
+        mvMaskPyramid.clear();
+        if(!mask.empty())
+            mvMaskPyramid.resize(nlevels);
+
         for (int level = 0; level < nlevels; ++level)
         {
             float scale = mvInvScaleFactor[level];
             Size sz(cvRound((float)image.cols*scale), cvRound((float)image.rows*scale));
             Size wholeSize(sz.width + EDGE_THRESHOLD*2, sz.height + EDGE_THRESHOLD*2);
-            Mat temp(wholeSize, image.type()), masktemp;
+            Mat temp(wholeSize, image.type());
             mvImagePyramid[level] = temp(Rect(EDGE_THRESHOLD, EDGE_THRESHOLD, sz.width, sz.height));
 
             // Compute the resized image
@@ -1190,6 +1211,11 @@ namespace ORB_SLAM3
                 copyMakeBorder(image, temp, EDGE_THRESHOLD, EDGE_THRESHOLD, EDGE_THRESHOLD, EDGE_THRESHOLD,
                                BORDER_REFLECT_101);
             }
+
+            // Resize the mask (if any) to match this level's resolution. Nearest-neighbor
+            // keeps it strictly binary instead of blurring its boundary.
+            if(!mask.empty())
+                resize(mask, mvMaskPyramid[level], sz, 0, 0, INTER_NEAREST);
         }
 
     }

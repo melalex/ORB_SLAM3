@@ -293,6 +293,10 @@ protected:
     float mbf;
     float mImageScale;
 
+    // Optional feature-detection masks (Camera.mask / Camera2.mask). Empty if not
+    // configured, in which case masking is a no-op.
+    cv::Mat mMask1, mMask2;
+
     float mImuFreq;
     double mImuPer;
     bool mInsertKFsLost;

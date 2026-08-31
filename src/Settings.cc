@@ -25,6 +25,8 @@
 
 #include <opencv2/core/persistence.hpp>
 #include <opencv2/core/eigen.hpp>
+#include <opencv2/imgcodecs.hpp>
+#include <opencv2/imgproc.hpp>
 
 #include <iostream>
 
@@ -177,6 +179,11 @@ namespace ORB_SLAM3 {
             precomputeRectificationMaps();
             cout << "\t-Computed rectification maps" << endl;
         }
+
+        //Load optional feature-detection masks (must run last: it needs newImSize_,
+        //bNeedToRectify_/bNeedToResize1_ and, if rectifying, M1l_/M2l_/M1r_/M2r_ to
+        //already be final so the mask ends up in the same pixel space as the image)
+        loadMasks(fSettings);
 
         cout << "----------------------------------" << endl;
     }
@@ -524,6 +531,59 @@ namespace ORB_SLAM3 {
             Sophus::SE3f T_r1_u1(eigenR_r1_u1,Eigen::Vector3f::Zero());
             Tbc_ = Tbc_ * T_r1_u1.inverse();
         }
+    }
+
+    void Settings::loadMasks(cv::FileStorage &fSettings) {
+        bool found;
+
+        string maskPath1 = readParameter<string>(fSettings,"Camera.mask",found,false);
+        if(!maskPath1.empty()){
+            mMask1_ = cv::imread(maskPath1, cv::IMREAD_GRAYSCALE);
+            if(mMask1_.empty()){
+                cerr << "[ERROR]: could not load Camera.mask image at: " << maskPath1 << endl;
+                exit(-1);
+            }
+        }
+
+        string maskPath2;
+        if(sensor_ == System::STEREO || sensor_ == System::IMU_STEREO){
+            maskPath2 = readParameter<string>(fSettings,"Camera2.mask",found,false);
+            if(!maskPath2.empty()){
+                mMask2_ = cv::imread(maskPath2, cv::IMREAD_GRAYSCALE);
+                if(mMask2_.empty()){
+                    cerr << "[ERROR]: could not load Camera2.mask image at: " << maskPath2 << endl;
+                    exit(-1);
+                }
+            }
+        }
+
+        if(mMask1_.empty() && mMask2_.empty())
+            return;
+
+        //Bring each mask into the exact pixel space the extractor will see: if the
+        //images get rectified, remap the mask the same way; otherwise resize it to
+        //match, same as is done for the images themselves (System::TrackStereo).
+        //Note: cv::remap cannot operate in-place, so remap into a temporary first.
+        if(bNeedToRectify_){
+            if(!mMask1_.empty()){
+                cv::Mat rectified;
+                cv::remap(mMask1_, rectified, M1l_, M2l_, cv::INTER_NEAREST);
+                mMask1_ = rectified;
+            }
+            if(!mMask2_.empty()){
+                cv::Mat rectified;
+                cv::remap(mMask2_, rectified, M1r_, M2r_, cv::INTER_NEAREST);
+                mMask2_ = rectified;
+            }
+        }
+        else{
+            if(!mMask1_.empty() && mMask1_.size() != newImSize_)
+                cv::resize(mMask1_, mMask1_, newImSize_, 0, 0, cv::INTER_NEAREST);
+            if(!mMask2_.empty() && mMask2_.size() != newImSize_)
+                cv::resize(mMask2_, mMask2_, newImSize_, 0, 0, cv::INTER_NEAREST);
+        }
+
+        cout << "\t-Loaded feature-detection mask(s)" << endl;
     }
 
     ostream &operator<<(std::ostream& output, const Settings& settings){
