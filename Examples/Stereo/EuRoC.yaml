@@ -44,6 +44,7 @@ Camera2.p2: -3.55590700e-05
 # a raw (unrectified) frame from that physical camera. Non-zero pixels are eligible
 # for feature detection; zero pixels (e.g. covering part of the robot's own body
 # visible in the frame) are excluded. Automatically rectified/resized to match.
+# If a file can't be loaded, Settings throws (std::runtime_error).
 #Camera.mask: "mask_cam1.png"
 #Camera2.mask: "mask_cam2.png"
 

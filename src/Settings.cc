@@ -29,6 +29,7 @@
 #include <opencv2/imgproc.hpp>
 
 #include <iostream>
+#include <stdexcept>
 
 using namespace std;
 
@@ -536,12 +537,15 @@ namespace ORB_SLAM3 {
     void Settings::loadMasks(cv::FileStorage &fSettings) {
         bool found;
 
+        //A configured-but-unloadable mask throws instead of exit(-1): loadMasks()
+        //runs from the Settings ctor, which is heap-constructed in System::System,
+        //so a caller wrapping `new System(...)` in try/catch can report it and
+        //recover. (Downstream code already treats an empty mask as "no mask".)
         string maskPath1 = readParameter<string>(fSettings,"Camera.mask",found,false);
         if(!maskPath1.empty()){
             mMask1_ = cv::imread(maskPath1, cv::IMREAD_GRAYSCALE);
             if(mMask1_.empty()){
-                cerr << "[ERROR]: could not load Camera.mask image at: " << maskPath1 << endl;
-                exit(-1);
+                throw std::runtime_error("could not load Camera.mask image at: " + maskPath1);
             }
         }
 
@@ -551,8 +555,7 @@ namespace ORB_SLAM3 {
             if(!maskPath2.empty()){
                 mMask2_ = cv::imread(maskPath2, cv::IMREAD_GRAYSCALE);
                 if(mMask2_.empty()){
-                    cerr << "[ERROR]: could not load Camera2.mask image at: " << maskPath2 << endl;
-                    exit(-1);
+                    throw std::runtime_error("could not load Camera2.mask image at: " + maskPath2);
                 }
             }
         }

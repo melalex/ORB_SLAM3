@@ -34,6 +34,7 @@ Camera1.p2: 1.76187114e-05
 # (unrectified) frame from this camera. Non-zero pixels are eligible for feature
 # detection; zero pixels (e.g. covering part of the robot's own body visible in the
 # frame) are excluded. Automatically resized to match Camera.newWidth/newHeight.
+# If the file can't be loaded, Settings throws (std::runtime_error).
 #Camera.mask: "mask_cam1.png"
 
 Camera.width: 752
