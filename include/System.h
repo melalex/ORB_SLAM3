@@ -177,6 +177,15 @@ public:
     std::vector<MapPoint*> GetTrackedMapPoints();
     std::vector<cv::KeyPoint> GetTrackedKeyPointsUn();
 
+    // Number of maps currently held in the Atlas, and the id of the one
+    // Tracking is currently working on. A caller can use these (together with
+    // MapChanged()) to tell "lost tracking, then relocalized into the existing
+    // map" (map count/id unchanged) apart from "lost tracking, then had to
+    // start a brand-new map" (map count grew) - the two look identical from
+    // GetTrackingState() alone.
+    int GetNumberOfMaps() { return mpAtlas->CountMaps(); }
+    long unsigned int GetCurrentMapId() { return mpAtlas->GetCurrentMap()->GetId(); }
+
     // For debugging
     double GetTimeFromIMUInit();
     bool isLost();
