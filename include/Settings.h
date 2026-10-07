@@ -79,6 +79,7 @@ namespace ORB_SLAM3 {
         bool needToUndistort() {return bNeedToUndistort_;}
 
         cv::Size newImSize() {return newImSize_;}
+        cv::Size originalImSize() const {return originalImSize_;}
         float fps() {return fps_;}
         bool rgb() {return bRGB_;}
         bool needToResize() {return bNeedToResize1_;}
@@ -122,12 +123,11 @@ namespace ORB_SLAM3 {
         cv::Mat M1r() {return M1r_;}
         cv::Mat M2r() {return M2r_;}
 
-        // Optional feature-detection masks (empty cv::Mat if not configured). Non-zero
-        // pixels are eligible for feature detection; zero pixels (e.g. covering part of
-        // the robot's own body visible in the frame) are excluded. Already rectified/
-        // resized to match whatever pixel space the image pipeline hands to the extractor.
-        cv::Mat mask1() {return mMask1_;}
-        cv::Mat mask2() {return mMask2_;}
+        // Brings a feature-detection mask drawn against a raw (unrectified, unresized)
+        // frame into the exact pixel space the image pipeline hands to the extractor:
+        // remapped with the rectification maps if rectifying (`right` picks camera 2's),
+        // else resized to newImSize() - both INTER_NEAREST. Empty in, empty out.
+        cv::Mat prepareMask(const cv::Mat& mask, bool right) const;
 
     private:
         template<typename T>
@@ -162,7 +162,6 @@ namespace ORB_SLAM3 {
         void readOtherParameters(cv::FileStorage& fSettings);
 
         void precomputeRectificationMaps();
-        void loadMasks(cv::FileStorage& fSettings);
 
         int sensor_;
         CameraType cameraType_;     //Camera type
@@ -177,10 +176,6 @@ namespace ORB_SLAM3 {
         cv::Size originalImSize_, newImSize_;
         float fps_;
         bool bRGB_;
-
-        // Optional feature-detection masks, loaded from Camera.mask / Camera2.mask.
-        // Empty if not configured.
-        cv::Mat mMask1_, mMask2_;
 
         bool bNeedToUndistort_;
         bool bNeedToRectify_;

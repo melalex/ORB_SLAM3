@@ -75,10 +75,8 @@ Two parser generations coexist:
 
 **Feature-detector masking** (`feature/orb-feature-mask`, commits `8c1f660`, `005353f`): exclude static image regions (e.g. the robot's own body in frame) from ORB extraction.
 
-- New optional YAML keys `Camera.mask` and `Camera2.mask` — paths to 8-bit single-channel images drawn against a **raw, unrectified** frame. Non-zero = eligible for features, zero = excluded.
-- `Settings::loadMasks` (`src/Settings.cc`) loads them **last** in the ctor (after rectification maps / `newImSize_` are final) and warps each mask into the exact pixel space the extractor sees — `cv::remap` with the rectification maps if rectifying, else `cv::resize`, both `INTER_NEAREST`. It **throws** on an unreadable mask path (was `exit(-1)` before `005353f`).
-- `Settings::mask1()` / `mask2()` expose them; `Tracking` holds them and threads them through every `Frame` construction site into `Frame::ExtractORB` → `ORBextractor::operator()`.
+- Masks are handed in **in memory**, not via the settings YAML: `System::SetFeatureMask(mask, mask2 = {})` takes 8-bit single-channel `cv::Mat`s drawn against the **raw, unrectified** input frame, sized exactly `Camera.width`×`Camera.height` (throws `std::invalid_argument` otherwise; `std::logic_error` without a File.version "1.0" settings file). Non-zero = eligible for features, zero = excluded. Call it before the first `Track*`. (The earlier `Camera.mask`/`Camera2.mask` YAML keys and `Settings::loadMasks` were removed - the caller owns loading the image.)
+- `Settings::prepareMask` (`src/Settings.cc`) warps each mask once into the exact pixel space the extractor sees — `cv::remap` with the rectification maps if rectifying, else `cv::resize` to `newImSize_`, both `INTER_NEAREST`.
+- `Tracking::SetMasks` stores them; `Tracking` threads them through every `Frame` construction site into `Frame::ExtractORB` → `ORBextractor::operator()`.
 - `ORBextractor` builds a per-pyramid-level mask and drops FAST corners on masked pixels *before* octree budget distribution (so budget isn't spent on corners that would be discarded). Pixel values are never modified, so no edge artifacts along the mask boundary.
-- Fully backward compatible: no `Camera.mask` key ⇒ empty `cv::Mat` ⇒ upstream behavior.
-
-Example YAMLs documenting the keys: `Examples/{Monocular/EuRoC,Stereo/EuRoC,RGB-D/RealSense_D435i}.yaml`.
+- Fully backward compatible: never calling `SetFeatureMask` ⇒ empty `cv::Mat` ⇒ upstream behavior.

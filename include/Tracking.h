@@ -85,6 +85,10 @@ public:
     // The focal lenght should be similar or scale prediction will fail when projecting points
     void ChangeCalibration(const string &strSettingPath);
 
+    // Optional feature-detection masks (see System::SetFeatureMask), already in the
+    // extractor's pixel space. Empty = no masking.
+    void SetMasks(const cv::Mat &mask1, const cv::Mat &mask2);
+
     // Use this function if you have deactivated local mapping and you only want to localize the camera.
     void InformOnlyTracking(const bool &flag);
 
@@ -293,8 +297,8 @@ protected:
     float mbf;
     float mImageScale;
 
-    // Optional feature-detection masks (Camera.mask / Camera2.mask). Empty if not
-    // configured, in which case masking is a no-op.
+    // Optional feature-detection masks (System::SetFeatureMask). Empty if not
+    // set, in which case masking is a no-op.
     cv::Mat mMask1, mMask2;
 
     float mImuFreq;

@@ -186,6 +186,16 @@ public:
     int GetNumberOfMaps() { return mpAtlas->CountMaps(); }
     long unsigned int GetCurrentMapId() { return mpAtlas->GetCurrentMap()->GetId(); }
 
+    // Optional feature-detection masks: 8-bit single-channel images the size of the
+    // raw input frame (Camera.width x Camera.height; Camera2.* for `mask2`), non-zero
+    // = eligible for features, zero = excluded (e.g. the robot's own body). Warped
+    // once here into the extractor's pixel space (rectified / Camera.newWidth-resized),
+    // so nothing is resized per frame. An empty Mat clears that camera's mask. Throws
+    // std::invalid_argument on a wrong type/size, or std::logic_error if the settings
+    // file isn't File.version "1.0" (no Settings to size against). Call before the
+    // first Track* call, from the thread that tracks.
+    void SetFeatureMask(const cv::Mat &mask, const cv::Mat &mask2 = cv::Mat());
+
     // For debugging
     double GetTimeFromIMUInit();
     bool isLost();

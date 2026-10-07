@@ -585,10 +585,6 @@ void Tracking::newParameterLoader(Settings *settings) {
     mMaxFrames = settings->fps();
     mbRGB = settings->rgb();
 
-    //Optional feature-detection masks (empty if not configured)
-    mMask1 = settings->mask1();
-    mMask2 = settings->mask2();
-
     //ORB parameters
     int nFeatures = settings->nFeatures();
     int nLevels = settings->nLevels();
@@ -3935,6 +3931,12 @@ void Tracking::ResetActiveMap(bool bLocMap)
 vector<MapPoint*> Tracking::GetLocalMapMPS()
 {
     return mvpLocalMapPoints;
+}
+
+void Tracking::SetMasks(const cv::Mat &mask1, const cv::Mat &mask2)
+{
+    mMask1 = mask1;
+    mMask2 = mask2;
 }
 
 void Tracking::ChangeCalibration(const string &strSettingPath)

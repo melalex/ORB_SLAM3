@@ -23,6 +23,7 @@
 #include <thread>
 #include <pangolin/pangolin.h>
 #include <iomanip>
+#include <stdexcept>
 #include <openssl/md5.h>
 #include <boost/serialization/base_object.hpp>
 #include <boost/serialization/string.hpp>
@@ -1343,6 +1344,29 @@ double System::GetTimeFromIMUInit()
         return mpLocalMapper->GetCurrKFTime()-mpLocalMapper->mFirstTs;
     else
         return 0.f;
+}
+
+void System::SetFeatureMask(const cv::Mat &mask, const cv::Mat &mask2)
+{
+    if(!settings_)
+        throw std::logic_error("SetFeatureMask requires a File.version \"1.0\" settings file");
+
+    const auto validate = [this](const cv::Mat &m, const char *name)
+    {
+        if(m.empty())
+            return;
+        if(m.type() != CV_8UC1)
+            throw std::invalid_argument(std::string(name) + " must be CV_8UC1");
+        const cv::Size expected = settings_->originalImSize();
+        if(m.size() != expected)
+            throw std::invalid_argument(std::string(name) + " is " + std::to_string(m.cols) + "x" +
+                                        std::to_string(m.rows) + ", expected the input frame size " +
+                                        std::to_string(expected.width) + "x" + std::to_string(expected.height));
+    };
+    validate(mask, "feature mask");
+    validate(mask2, "feature mask2");
+
+    mpTracker->SetMasks(settings_->prepareMask(mask, false), settings_->prepareMask(mask2, true));
 }
 
 bool System::isLost()
